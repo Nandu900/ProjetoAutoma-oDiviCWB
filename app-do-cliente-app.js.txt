@@ -1,0 +1,660 @@
+/* Agendar no Studio Vito — app do cliente — lógica da aplicação
+   JavaScript puro, sem framework e sem dependências.
+   Tudo dentro de uma IIFE para não vazar nada para o escopo global. */
+
+(function(){
+"use strict";
+
+/* ============================ utilidades ============================ */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rnd = mulberry32(20260922);
+const ri = (a,b)=>a+Math.floor(rnd()*(b-a+1));
+const pad = n=>String(n).padStart(2,"0");
+const iso = d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const addDias=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const hm = m=>pad(Math.floor(m/60))+":"+pad(m%60);
+const BRL = v=>"R$ "+v.toLocaleString("pt-BR");
+const esc = s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const WD=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+const WDL=["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
+const MO=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const iniciais = n=>n.split(" ").filter(Boolean).slice(0,2).map(s=>s[0]).join("").toUpperCase();
+const HOJE = new Date(); HOJE.setHours(0,0,0,0);
+const AGORA_MIN = new Date().getHours()*60 + new Date().getMinutes();
+
+function dataLonga(d){
+  const h = iso(d)===iso(HOJE), a = iso(d)===iso(addDias(HOJE,1));
+  const base = WDL[d.getDay()]+", "+d.getDate()+" de "+MO[d.getMonth()];
+  return h ? "hoje, "+base.split(", ")[1] : a ? "amanhã, "+base.split(", ")[1] : base;
+}
+
+/* ============================ o salão ============================ */
+const SALAO = {
+  nome:"Studio Vito", tagline:"Cabelo, barba e unhas",
+  endereco:"Rua Girassol, 412 — Vila Madalena, São Paulo",
+  fone:"(11) 3815-0042",
+  abre:{1:[9*60,19*60],2:[9*60,20*60],3:[9*60,20*60],4:[9*60,20*60],5:[9*60,20*60],6:[9*60,18*60]},
+  metaFidelidade:10
+};
+const PROS = [
+  {id:"p1",nome:"Vanessa Rocha",papel:"Cabeleireira",cor:"--p1",soft:"--p1-soft",dias:[1,2,3,4,5,6],ini:9*60,fim:19*60},
+  {id:"p2",nome:"Diego Prado",  papel:"Barbeiro",    cor:"--p2",soft:"--p2-soft",dias:[2,3,4,5,6],  ini:10*60,fim:20*60},
+  {id:"p3",nome:"Juliana Sá",   papel:"Manicure",    cor:"--p3",soft:"--p3-soft",dias:[1,2,3,4,5],  ini:9*60, fim:18*60}
+];
+const pro = id=>PROS.find(p=>p.id===id);
+
+const SERVICOS = [
+  {id:"s1", nome:"Corte feminino",   dur:60,  preco:80,  pros:["p1"], desc:"Corte com lavagem e finalização."},
+  {id:"s2", nome:"Escova",           dur:45,  preco:60,  pros:["p1"], desc:"Lavagem e escova modelada."},
+  {id:"s3", nome:"Hidratação",       dur:60,  preco:110, pros:["p1"], desc:"Tratamento com máscara e finalização."},
+  {id:"s4", nome:"Coloração",        dur:120, preco:220, pros:["p1"], desc:"Cor completa, raiz e comprimento."},
+  {id:"s5", nome:"Luzes / mechas",   dur:150, preco:320, pros:["p1"], desc:"Mechas com matização."},
+  {id:"s6", nome:"Progressiva",      dur:180, preco:380, pros:["p1"], desc:"Alisamento com selagem."},
+  {id:"s7", nome:"Corte masculino",  dur:30,  preco:45,  pros:["p2"], desc:"Máquina, tesoura e acabamento."},
+  {id:"s8", nome:"Corte + barba",    dur:60,  preco:75,  pros:["p2"], desc:"O combo, com toalha quente."},
+  {id:"s9", nome:"Barba",            dur:30,  preco:35,  pros:["p2"], desc:"Desenho, navalha e hidratação."},
+  {id:"s10",nome:"Manicure",         dur:45,  preco:45,  pros:["p3"], desc:"Cutícula, lixa e esmalte."},
+  {id:"s11",nome:"Pé e mão",         dur:75,  preco:80,  pros:["p3"], desc:"Manicure e pedicure completas."},
+  {id:"s12",nome:"Esmaltação em gel",dur:60,  preco:95,  pros:["p3"], desc:"Gel com duração de até 3 semanas."}
+];
+const srv = id=>SERVICOS.find(s=>s.id===id);
+
+function jornada(p, d){
+  if(!p.dias.includes(d.getDay())) return null;
+  const casa = SALAO.abre[d.getDay()];
+  if(!casa) return null;
+  return [Math.max(p.ini, casa[0]), Math.min(p.fim, casa[1])];
+}
+
+/* ============================ a agenda do salão ============================ */
+// ocupação de exemplo para os próximos 21 dias: é o que sobra que vira horário livre
+const OCUPADO = [];
+(function(){
+  for(let k=0;k<21;k++){
+    const d = addDias(HOJE,k), dia = iso(d);
+    PROS.forEach(p=>{
+      const j = jornada(p,d);
+      if(!j) return;
+      OCUPADO.push({data:dia, proId:p.id, ini: p.id==="p2"?13*60:12*60, dur:60, motivo:"Almoço"});
+      const carga = k===0 ? .58 : k<=2 ? .46 : k<=6 ? .34 : .2;   // dias próximos mais cheios
+      let cursor = j[0];
+      while(cursor < j[1]-30){
+        const dur = [30,45,60,60,90,120][ri(0,5)];
+        if(rnd() < carga && cursor+dur <= j[1]){
+          if(!(cursor < (p.id==="p2"?14*60:13*60) && cursor+dur > (p.id==="p2"?13*60:12*60)))
+            OCUPADO.push({data:dia, proId:p.id, ini:cursor, dur:dur, motivo:"ocupado"});
+          cursor += dur;
+        } else cursor += 30;
+      }
+    });
+  }
+})();
+
+function conflita(dia, proId, ini, dur){
+  return OCUPADO.some(o => o.data===dia && o.proId===proId && ini < o.ini+o.dur && ini+dur > o.ini)
+      || MEUS.some(m => m.data===dia && m.proId===proId && m.status==="marcado" &&
+                        ini < m.ini+m.dur && ini+dur > m.ini);
+}
+
+// horários livres de um serviço num dia; proId null = qualquer profissional
+function livres(servicoId, proId, d){
+  const s = srv(servicoId), dia = iso(d), fora = [];
+  const lista = (proId ? [pro(proId)] : s.pros.map(pro));
+  const mapa = {};
+  lista.forEach(p=>{
+    const j = jornada(p,d);
+    if(!j) return;
+    for(let m=j[0]; m+s.dur<=j[1]; m+=30){
+      if(iso(d)===iso(HOJE) && m < AGORA_MIN+60) continue;   // nada em cima da hora
+      if(conflita(dia, p.id, m, s.dur)) continue;
+      if(!mapa[m]) mapa[m] = p.id;
+    }
+  });
+  return Object.keys(mapa).map(Number).sort((a,b)=>a-b).map(m=>({ini:m, proId:mapa[m]}));
+}
+function temVaga(servicoId, proId, d){ return livres(servicoId, proId, d).length > 0; }
+
+/* ============================ o cliente ============================ */
+const EU = {nome:"Marina Duarte", tel:"(11) 98842-7190"};
+const MEUS = [
+  {id:"m1", servicoId:"s2", proId:"p1", data:iso(addDias(HOJE,2)), ini:15*60,   dur:45, preco:60,  status:"marcado", canal:"Página"},
+  {id:"m2", servicoId:"s10",proId:"p3", data:iso(addDias(HOJE,-19)),ini:11*60,  dur:45, preco:45,  status:"feito"},
+  {id:"m3", servicoId:"s1", proId:"p1", data:iso(addDias(HOJE,-33)),ini:16*60,  dur:60, preco:80,  status:"feito"},
+  {id:"m4", servicoId:"s3", proId:"p1", data:iso(addDias(HOJE,-54)),ini:10*60,  dur:60, preco:110, status:"feito"},
+  {id:"m5", servicoId:"s2", proId:"p1", data:iso(addDias(HOJE,-71)),ini:17*60,  dur:45, preco:60,  status:"feito"},
+  {id:"m6", servicoId:"s1", proId:"p1", data:iso(addDias(HOJE,-96)),ini:14*60,  dur:60, preco:80,  status:"feito"},
+  {id:"m7", servicoId:"s10",proId:"p3", data:iso(addDias(HOJE,-118)),ini:9*60+30,dur:45,preco:45,  status:"feito"},
+  {id:"m8", servicoId:"s2", proId:"p1", data:iso(addDias(HOJE,-140)),ini:18*60, dur:45, preco:60,  status:"feito"}
+];
+let seq = 100;
+const feitos = ()=>MEUS.filter(m=>m.status==="feito").sort((a,b)=>a.data<b.data?1:-1);
+const proximos = ()=>MEUS.filter(m=>m.status==="marcado" && m.data>=iso(HOJE)).sort((a,b)=>a.data<b.data?-1:1);
+
+function marcar(servicoId, proId, dia, ini, canal){
+  const s = srv(servicoId);
+  const m = {id:"m"+(seq++), servicoId, proId, data:dia, ini, dur:s.dur, preco:s.preco, status:"marcado", canal:canal||"Página"};
+  MEUS.push(m);
+  return m;
+}
+
+/* ============================ estado ============================ */
+let canal = "app";
+let aba = "inicio";
+let passo = null;          // {n, servicoId, proId, data, ini}
+let confirmado = null;
+const fone = document.getElementById("fone");
+const legenda = document.getElementById("legenda");
+
+/* ============================ telas: página ============================ */
+function chipAberto(){
+  const j = SALAO.abre[HOJE.getDay()];
+  if(!j) return '<span class="chipclaro">Fechado hoje</span>';
+  const aberto = AGORA_MIN >= j[0] && AGORA_MIN < j[1];
+  return '<span class="chipclaro">'+(aberto ? "Aberto até "+hm(j[1]) : "Abre "+hm(j[0]))+'</span>';
+}
+
+function telaInicio(){
+  const prox = proximos()[0];
+  let h = '<div class="capa">'+
+    '<h1>'+SALAO.nome+'</h1>'+
+    '<div class="end">'+esc(SALAO.tagline)+' · '+esc(SALAO.endereco)+'</div>'+
+    '<div class="chips">'+chipAberto()+
+      '<span class="chipclaro">3 profissionais</span>'+
+      '<span class="chipclaro">Seg a sáb</span></div>'+
+  '</div><div class="corpo">';
+
+  if(prox){
+    const s = srv(prox.servicoId), p = pro(prox.proId), d = new Date(prox.data+"T12:00:00");
+    h += '<div class="destaque"><div class="q">Seu próximo horário</div>'+
+      '<div class="r">'+esc(s.nome)+' · '+hm(prox.ini)+'</div>'+
+      '<div class="d">'+dataLonga(d)+' com '+esc(p.nome.split(" ")[0])+'</div></div>';
+  }
+
+  h += '<div class="bloco"><h2>O que você quer fazer?</h2>'+
+       '<div class="cap">Escolha o serviço e a gente mostra os horários livres.</div>';
+  SERVICOS.forEach(s=>{
+    const p = pro(s.pros[0]);
+    h += '<button class="servico" data-srv="'+s.id+'">'+
+      '<span class="avatar" style="background:var('+p.soft+');color:var('+p.cor+')" title="'+esc(p.nome)+'">'+iniciais(p.nome)+'</span>'+
+      '<span class="bd"><span class="nm">'+esc(s.nome)+'</span>'+
+      '<span class="mt">'+s.dur+' min · com '+esc(p.nome.split(" ")[0])+'</span></span>'+
+      '<span class="pr">'+BRL(s.preco)+'</span><span class="seta">›</span></button>';
+  });
+  h += '</div>';
+
+  h += '<div class="bloco"><h2>Quem atende</h2><div class="cartao">'+
+    PROS.map(p=>'<div class="linha">'+
+      '<span class="avatar" style="background:var('+p.soft+');color:var('+p.cor+')">'+iniciais(p.nome)+'</span>'+
+      '<span class="bd"><b>'+esc(p.nome)+'</b><div class="sub">'+esc(p.papel)+' · '+
+        p.dias.map(d=>WD[d]).join(", ")+' · '+hm(p.ini)+' às '+hm(p.fim)+'</div></span></div>').join("")+
+    '</div></div>';
+
+  h += '<div class="nota">Confirmamos seu horário pelo WhatsApp um dia antes. Se precisar desmarcar, avise com 4 horas de antecedência.</div>';
+  h += '</div>';
+  return h;
+}
+
+function telaAgendar(){
+  const st = passo;
+  const total = 5;
+  const titulos = ["Escolha o serviço","Com quem você quer","Escolha o dia","Escolha o horário","Confirme os dados"];
+  let h = '<div class="topo"><button class="voltar" data-voltar="1" aria-label="Voltar">‹</button>'+
+    '<div><h2>'+titulos[st.n-1]+'</h2><div class="et">Passo '+st.n+' de '+total+'</div></div></div>'+
+    '<div class="trilho"><i style="width:'+Math.round(st.n/total*100)+'%"></i></div>'+
+    '<div class="corpo">';
+
+  if(st.n===1){
+    SERVICOS.forEach(s=>{
+      const p = pro(s.pros[0]);
+      h += '<button class="servico" data-srv="'+s.id+'">'+
+        '<span class="avatar" style="background:var('+p.soft+');color:var('+p.cor+')" title="'+esc(p.nome)+'">'+iniciais(p.nome)+'</span>'+
+        '<span class="bd"><span class="nm">'+esc(s.nome)+'</span><span class="mt">'+s.dur+' min · '+esc(s.desc)+'</span></span>'+
+        '<span class="pr">'+BRL(s.preco)+'</span></button>';
+    });
+  }
+
+  if(st.n===2){
+    const s = srv(st.servicoId);
+    if(s.pros.length>1){
+      h += '<button class="opcao" data-pro="qualquer" aria-pressed="'+(st.proId===null)+'">'+
+        '<span class="avatar" style="background:var(--surface-2);color:var(--ink-2)">?</span>'+
+        '<span class="bd"><b>Tanto faz</b><div class="sub">mostra todos os horários livres</div></span></button>';
+    }
+    s.pros.map(pro).forEach(p=>{
+      h += '<button class="opcao" data-pro="'+p.id+'" aria-pressed="'+(st.proId===p.id)+'">'+
+        '<span class="avatar" style="background:var('+p.soft+');color:var('+p.cor+')">'+iniciais(p.nome)+'</span>'+
+        '<span class="bd"><b>'+esc(p.nome)+'</b><div class="sub">'+esc(p.papel)+'</div></span></button>';
+    });
+    if(s.pros.length===1)
+      h += '<div class="nota">'+esc(srv(st.servicoId).nome)+' é feito só por '+esc(pro(s.pros[0]).nome.split(" ")[0])+'.</div>';
+  }
+
+  if(st.n===3){
+    h += '<div class="dias">';
+    for(let k=0;k<14;k++){
+      const d = addDias(HOJE,k);
+      const vaga = SALAO.abre[d.getDay()] ? temVaga(st.servicoId, st.proId, d) : false;
+      h += '<button class="dia" data-dia="'+iso(d)+'" aria-pressed="'+(st.data===iso(d))+'"'+(vaga?"":" disabled")+'>'+
+        '<span class="sem">'+(k===0?"Hoje":WD[d.getDay()])+'</span>'+
+        '<span class="num">'+d.getDate()+'</span><span class="mes">'+MO[d.getMonth()]+'</span></button>';
+    }
+    h += '</div><div class="nota">Dias apagados estão sem horário livre para este serviço.</div>';
+  }
+
+  if(st.n===4){
+    const d = new Date(st.data+"T12:00:00");
+    const vagas = livres(st.servicoId, st.proId, d);
+    h += '<div class="pill brand" style="margin-bottom:4px">'+dataLonga(d)+'</div>';
+    if(!vagas.length){
+      h += '<div class="vazio">Não sobrou horário nesse dia. Volte e escolha outro.</div>';
+    } else {
+      [["Manhã",0,12*60],["Tarde",12*60,18*60],["Noite",18*60,24*60]].forEach(([rot,a,b])=>{
+        const fatia = vagas.filter(v=>v.ini>=a && v.ini<b);
+        if(!fatia.length) return;
+        h += '<div class="faixa">'+rot+'</div><div class="horas">'+
+          fatia.map(v=>'<button class="hora" data-hora="'+v.ini+'" aria-pressed="'+(st.ini===v.ini)+'">'+hm(v.ini)+'</button>').join("")+
+          '</div>';
+      });
+    }
+  }
+
+  if(st.n===5){
+    const s = srv(st.servicoId), d = new Date(st.data+"T12:00:00");
+    const escolhido = st.proId || (livres(st.servicoId, null, d).find(v=>v.ini===st.ini)||{}).proId;
+    const p = pro(escolhido);
+    h += '<div class="cartao resumo">'+
+      '<div class="r"><span>Serviço</span><span>'+esc(s.nome)+'</span></div>'+
+      '<div class="r"><span>Profissional</span><span>'+esc(p.nome)+'</span></div>'+
+      '<div class="r"><span>Quando</span><span>'+dataLonga(d)+'<br>'+hm(st.ini)+' às '+hm(st.ini+s.dur)+'</span></div>'+
+      '<div class="r"><span>Valor</span><span>'+BRL(s.preco)+'</span></div>'+
+    '</div>'+
+    '<form id="form-confirmar">'+
+      '<div class="campo"><label for="f-nome">Seu nome</label>'+
+        '<input id="f-nome" value="'+esc(EU.nome)+'" autocomplete="name"></div>'+
+      '<div class="campo"><label for="f-tel">WhatsApp</label>'+
+        '<input id="f-tel" value="'+esc(EU.tel)+'" autocomplete="tel" inputmode="tel"></div>'+
+      '<div class="aviso" id="f-aviso" hidden></div>'+
+      '<button type="submit" class="btn cheio bloco">Confirmar horário</button>'+
+    '</form>'+
+    '<div class="nota">Você recebe a confirmação no WhatsApp. O pagamento é no salão, no dia.</div>';
+  }
+
+  h += '</div>';
+  return h;
+}
+
+function telaConfirmado(){
+  const m = confirmado, s = srv(m.servicoId), p = pro(m.proId), d = new Date(m.data+"T12:00:00");
+  return '<div class="corpo" style="padding-top:34px">'+
+    '<div class="centro"><div class="selo-ok">✓</div>'+
+    '<h2 style="font-size:20px">Horário confirmado</h2>'+
+    '<div class="cap" style="margin-top:6px">Mandamos os detalhes no seu WhatsApp.</div></div>'+
+    '<div class="cartao resumo">'+
+      '<div class="r"><span>Serviço</span><span>'+esc(s.nome)+'</span></div>'+
+      '<div class="r"><span>Com</span><span>'+esc(p.nome)+'</span></div>'+
+      '<div class="r"><span>Quando</span><span>'+dataLonga(d)+'<br>'+hm(m.ini)+'</span></div>'+
+      '<div class="r"><span>Onde</span><span>'+esc(SALAO.endereco)+'</span></div>'+
+    '</div>'+
+    '<button class="btn cheio bloco" data-ir="meus">Ver meus horários</button>'+
+    '<button class="btn bloco" data-ir="inicio">Voltar ao início</button>'+
+    '<div class="nota">Precisa remarcar? Dá para fazer por aqui em Meus horários, sem precisar ligar.</div>'+
+  '</div>';
+}
+
+function telaMeus(){
+  const prox = proximos(), ant = feitos();
+  let h = '<div class="corpo">'+
+    '<div class="bloco"><h2>Meus horários</h2>'+
+    '<div class="cap">'+esc(EU.nome)+' · '+esc(EU.tel)+'</div>';
+  if(!prox.length){
+    h += '<div class="cartao"><div class="vazio">Você não tem horário marcado.<br><br>'+
+         '<button class="btn cheio" data-ir="agendar">Agendar agora</button></div></div>';
+  } else {
+    prox.forEach(m=>{
+      const s = srv(m.servicoId), p = pro(m.proId), d = new Date(m.data+"T12:00:00");
+      h += '<div class="cartao" style="margin-bottom:10px">'+
+        '<div style="display:flex;align-items:flex-start;gap:11px">'+
+          '<span class="avatar" style="background:var('+p.soft+');color:var('+p.cor+')">'+iniciais(p.nome)+'</span>'+
+          '<div style="flex:1;min-width:0"><b>'+esc(s.nome)+'</b>'+
+            '<div class="sub" style="font-size:12.5px;color:var(--muted)">'+dataLonga(d)+' · '+hm(m.ini)+' · '+esc(p.nome.split(" ")[0])+'</div>'+
+            '<div style="margin-top:7px"><span class="pill ok">Confirmado</span> '+
+              '<span class="pill neutro">'+BRL(m.preco)+'</span>'+
+              (m.canal==="WhatsApp"?' <span class="pill brass">via WhatsApp</span>':'')+'</div>'+
+          '</div></div>'+
+        '<div style="display:flex;gap:7px;margin-top:12px">'+
+          '<button class="btn pq" data-remarcar="'+m.id+'">Remarcar</button>'+
+          '<button class="btn pq perigo" data-cancelar="'+m.id+'">Cancelar</button>'+
+        '</div></div>';
+    });
+  }
+  h += '</div>';
+
+  h += '<div class="bloco"><h2>Já fiz aqui</h2><div class="cap">'+ant.length+' atendimentos</div><div class="cartao">'+
+    ant.slice(0,6).map(m=>{
+      const s = srv(m.servicoId), p = pro(m.proId), d = new Date(m.data+"T12:00:00");
+      return '<div class="linha">'+
+        '<span class="dot" style="background:var('+p.cor+')"></span>'+
+        '<span class="bd"><b>'+esc(s.nome)+'</b><div class="sub">'+pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear()+
+          ' · '+esc(p.nome.split(" ")[0])+'</div></span>'+
+        '<button class="btn pq" data-repetir="'+m.servicoId+'">Repetir</button></div>';
+    }).join("")+'</div></div>';
+  h += '</div>';
+  return h;
+}
+
+function telaFidelidade(){
+  const n = feitos().length, meta = SALAO.metaFidelidade, atual = n % meta, faltam = meta - atual;
+  let selos = "";
+  for(let i=0;i<meta;i++){
+    const on = i < atual, premio = i === meta-1;
+    selos += '<div class="selo'+(on?" on":"")+(premio&&!on?" premio":"")+'">'+(on?"✓":(premio?"★":i+1))+'</div>';
+  }
+  return '<div class="corpo">'+
+    '<div class="bloco"><h2>Cartão fidelidade</h2>'+
+    '<div class="cap">A cada '+meta+' atendimentos, o próximo sai com 50% de desconto.</div>'+
+    '<div class="cartao">'+
+      '<div class="selos">'+selos+'</div>'+
+      '<div style="margin-top:14px;font-weight:700;font-size:15px">'+
+        (faltam===meta ? "Comece hoje o seu cartão" :
+         faltam===1 ? "Falta 1 atendimento para o desconto" : "Faltam "+faltam+" atendimentos para o desconto")+'</div>'+
+      '<div class="sub" style="font-size:12.5px;color:var(--muted);margin-top:3px">'+
+        atual+' de '+meta+' carimbos nesta cartela · '+n+' atendimentos no total</div>'+
+    '</div></div>'+
+    '<div class="bloco"><h2>Como funciona</h2><div class="cartao">'+
+      '<div class="linha"><span class="pill brand">1</span><span class="bd">Cada atendimento concluído vira um carimbo, automaticamente.</span></div>'+
+      '<div class="linha"><span class="pill brand">2</span><span class="bd">No '+meta+'º, o desconto aparece aqui e na sua próxima marcação.</span></div>'+
+      '<div class="linha"><span class="pill brand">3</span><span class="bd">Horário desmarcado ou falta não conta carimbo.</span></div>'+
+    '</div></div>'+
+    '<div class="nota">Cartela por pessoa, sem prazo de validade. Vale para qualquer serviço do salão.</div>'+
+  '</div>';
+}
+
+const ABAS = [
+  ["inicio","Início",'<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10V20h13V10"/>'],
+  ["agendar","Agendar",'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>'],
+  ["meus","Meus horários",'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>'],
+  ["fidelidade","Fidelidade",'<path d="m12 4 2.3 4.9 5.2.7-3.8 3.7.9 5.3-4.6-2.6-4.6 2.6.9-5.3L4.5 9.6l5.2-.7z"/>']
+];
+
+function pintaApp(){
+  let tela;
+  if(confirmado) tela = telaConfirmado();
+  else if(aba==="inicio") tela = telaInicio();
+  else if(aba==="agendar") tela = telaAgendar();
+  else if(aba==="meus") tela = telaMeus();
+  else tela = telaFidelidade();
+
+  fone.innerHTML = '<div class="tela" id="tela">'+tela+'</div>'+
+    '<nav class="rodape" aria-label="Seções">'+
+      ABAS.map(([k,rot,d])=>'<button data-aba="'+k+'" aria-current="'+(!confirmado && aba===k)+'">'+
+        '<svg class="pt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg>'+rot+'</button>').join("")+
+    '</nav>';
+
+  const f = document.getElementById("form-confirmar");
+  if(f) f.addEventListener("submit", confirmarPagina);
+  legenda.textContent = "O mesmo link que o salão põe na bio do Instagram e no Google. Nenhum cadastro, nenhum aplicativo para instalar.";
+}
+
+function confirmarPagina(ev){
+  ev.preventDefault();
+  const aviso = document.getElementById("f-aviso");
+  const nome = (document.getElementById("f-nome").value||"").trim();
+  const tel = (document.getElementById("f-tel").value||"").replace(/\D/g,"");
+  if(nome.length < 3){ aviso.hidden=false; aviso.textContent="Escreva seu nome completo."; return; }
+  if(tel.length < 10){ aviso.hidden=false; aviso.textContent="Confira o número do WhatsApp, com DDD."; return; }
+  const d = new Date(passo.data+"T12:00:00");
+  const proEscolhido = passo.proId || (livres(passo.servicoId, null, d).find(v=>v.ini===passo.ini)||{}).proId;
+  if(!proEscolhido){ aviso.hidden=false; aviso.textContent="Esse horário acabou de ser preenchido. Escolha outro."; return; }
+  EU.nome = nome;
+  confirmado = marcar(passo.servicoId, proEscolhido, passo.data, passo.ini, "Página");
+  passo = null;
+  pintaApp();
+  document.getElementById("tela").scrollTop = 0;
+}
+
+/* ============================ telas: WhatsApp ============================ */
+let conversa = [], rapidas = [], estadoZap = null, digitando = false;
+
+function horaAgora(){ const n=new Date(); return pad(n.getHours())+":"+pad(n.getMinutes()); }
+function diz(quem, texto){ conversa.push({quem, texto, hora:horaAgora()}); }
+
+function pintaZap(){
+  const balões = conversa.map(m=>'<div class="msg '+(m.quem==="eu"?"eu":"bot")+'">'+esc(m.texto)+
+      '<span class="hr">'+m.hora+(m.quem==="eu"?' ✓✓':'')+'</span></div>').join("");
+  fone.innerHTML = '<div class="zap">'+
+    '<div class="zaptopo">'+
+      '<span class="avatar" style="background:rgba(255,255,255,.2);color:#fff">SV</span>'+
+      '<div><div class="nm">'+SALAO.nome+'</div><div class="st">'+(digitando?"digitando…":"responde na hora")+'</div></div>'+
+    '</div>'+
+    '<div class="zapfundo" id="zapfundo">'+balões+
+      (digitando?'<div class="digitando"><i></i><i></i><i></i></div>':'')+'</div>'+
+    (rapidas.length && !digitando ? '<div class="rapidas">'+rapidas.map((r,i)=>
+        '<button class="rapida'+(r.fraca?" fraca":"")+'" data-zap="'+i+'">'+esc(r.rot)+'</button>').join("")+'</div>' : '')+
+    '<div class="zapnota">Simulação do bot de marcação · as respostas usam a agenda real do salão</div>'+
+  '</div>';
+  const fundo = document.getElementById("zapfundo");
+  if(fundo) fundo.scrollTop = fundo.scrollHeight;
+  legenda.textContent = "O mesmo motor de horários da página, respondendo no canal onde o cliente já está.";
+}
+
+function botDiz(textos, proximas, espera){
+  digitando = true; rapidas = []; pintaZap();
+  setTimeout(()=>{
+    digitando = false;
+    (Array.isArray(textos)?textos:[textos]).forEach(t=>diz("bot", t));
+    rapidas = proximas || [];
+    pintaZap();
+  }, espera || 620);
+}
+
+function iniciaZap(){
+  conversa = []; rapidas = []; estadoZap = {};
+  diz("bot", "Oi! Aqui é o "+SALAO.nome+" 💈\nPosso te ajudar com o quê?");
+  rapidas = [
+    {rot:"Quero marcar um horário", acao:"marcar"},
+    {rot:"Ver meus horários", acao:"ver"},
+    {rot:"Falar com atendente", acao:"humano", fraca:true}
+  ];
+  pintaZap();
+}
+
+function zapEscolhe(i){
+  const r = rapidas[i];
+  if(!r) return;
+  diz("eu", r.rot);
+  rapidas = [];
+  pintaZap();
+  setTimeout(()=>trataZap(r), 260);
+}
+
+function trataZap(r){
+  const st = estadoZap;
+
+  if(r.acao==="humano"){
+    botDiz("Combinado, já chamei alguém do salão. Enquanto isso, se quiser adiantar, é só me dizer o serviço.",
+      [{rot:"Quero marcar um horário", acao:"marcar"}, {rot:"Recomeçar", acao:"reset", fraca:true}]);
+    return;
+  }
+
+  if(r.acao==="reset"){ iniciaZap(); return; }
+
+  if(r.acao==="ver"){
+    const p = proximos();
+    if(!p.length){
+      botDiz("Não achei horário marcado no seu número. Quer marcar um agora?",
+        [{rot:"Quero marcar um horário", acao:"marcar"}]);
+    } else {
+      const linhas = p.map(m=>{
+        const s = srv(m.servicoId), pr = pro(m.proId), d = new Date(m.data+"T12:00:00");
+        return "• "+s.nome+" — "+dataLonga(d)+" às "+hm(m.ini)+", com "+pr.nome.split(" ")[0];
+      }).join("\n");
+      botDiz("Você tem:\n"+linhas+"\n\nQuer fazer mais alguma coisa?",
+        [{rot:"Marcar outro horário", acao:"marcar"}, {rot:"Só isso, obrigada", acao:"tchau", fraca:true}]);
+    }
+    return;
+  }
+
+  if(r.acao==="tchau"){
+    botDiz("Então tá! Te espero por aqui 💚",
+      [{rot:"Recomeçar a conversa", acao:"reset", fraca:true}]);
+    return;
+  }
+
+  if(r.acao==="marcar"){
+    st.servicoId = null; st.proId = null; st.data = null; st.ini = null;
+    const populares = ["s7","s8","s1","s2","s10","s12"].map(srv);
+    botDiz("Boa! Qual serviço você quer?",
+      populares.map(s=>({rot:s.nome+" · "+BRL(s.preco), acao:"srv", id:s.id}))
+        .concat([{rot:"Ver todos os serviços", acao:"todos", fraca:true}]));
+    return;
+  }
+
+  if(r.acao==="todos"){
+    botDiz("Nossa lista completa:", SERVICOS.map(s=>({rot:s.nome+" · "+BRL(s.preco), acao:"srv", id:s.id})));
+    return;
+  }
+
+  if(r.acao==="srv"){
+    st.servicoId = r.id;
+    const s = srv(r.id);
+    if(s.pros.length===1){
+      st.proId = s.pros[0];
+      const p = pro(st.proId);
+      botDiz(s.nome+" leva "+s.dur+" minutos e sai por "+BRL(s.preco)+". Quem atende é "+p.nome.split(" ")[0]+".\nPara quando?",
+        diasRapidos(st));
+    } else {
+      botDiz("Com quem você prefere?",
+        [{rot:"Tanto faz", acao:"pro", id:null}].concat(s.pros.map(id=>({rot:pro(id).nome.split(" ")[0], acao:"pro", id}))));
+    }
+    return;
+  }
+
+  if(r.acao==="pro"){
+    st.proId = r.id;
+    botDiz("Fechado. Para quando?", diasRapidos(st));
+    return;
+  }
+
+  if(r.acao==="dia"){
+    st.data = r.id;
+    const d = new Date(r.id+"T12:00:00");
+    const vagas = livres(st.servicoId, st.proId, d);
+    if(!vagas.length){
+      botDiz("Esse dia lotou. Tenho estes outros:", diasRapidos(st));
+      return;
+    }
+    const amostra = vagas.filter((v,i)=> i%Math.max(1,Math.floor(vagas.length/6))===0).slice(0,6);
+    botDiz("Tenho estes horários "+dataLonga(d)+":",
+      amostra.map(v=>({rot:hm(v.ini), acao:"hora", id:v.ini}))
+        .concat([{rot:"Outro dia", acao:"outrodia", fraca:true}]));
+    return;
+  }
+
+  if(r.acao==="outrodia"){ botDiz("Sem problema. Qual dia?", diasRapidos(st)); return; }
+
+  if(r.acao==="hora"){
+    st.ini = r.id;
+    const s = srv(st.servicoId), d = new Date(st.data+"T12:00:00");
+    const escolhido = st.proId || (livres(st.servicoId, null, d).find(v=>v.ini===st.ini)||{}).proId;
+    st.proEscolhido = escolhido;
+    botDiz("Deixa eu confirmar:\n\n"+s.nome+"\n"+dataLonga(d)+" às "+hm(st.ini)+
+           "\ncom "+pro(escolhido).nome+"\n"+BRL(s.preco)+"\n\nPosso fechar?",
+      [{rot:"Pode fechar", acao:"fechar"}, {rot:"Quero trocar o horário", acao:"outrodia", fraca:true}]);
+    return;
+  }
+
+  if(r.acao==="fechar"){
+    const m = marcar(st.servicoId, st.proEscolhido, st.data, st.ini, "WhatsApp");
+    const d = new Date(m.data+"T12:00:00");
+    const n = feitos().length % SALAO.metaFidelidade;
+    botDiz(["Prontinho, "+EU.nome.split(" ")[0]+"! Seu horário está marcado ✅",
+            "Te lembro um dia antes por aqui. Se precisar desmarcar, é só me chamar.\n\n"+
+            SALAO.endereco+"\n\nAh: você está com "+n+" de "+SALAO.metaFidelidade+" carimbos no cartão fidelidade."],
+      [{rot:"Ver meus horários", acao:"ver"}, {rot:"Recomeçar", acao:"reset", fraca:true}], 800);
+    return;
+  }
+}
+
+function diasRapidos(st){
+  const out = [];
+  for(let k=0;k<14 && out.length<5;k++){
+    const d = addDias(HOJE,k);
+    if(!SALAO.abre[d.getDay()]) continue;
+    if(!temVaga(st.servicoId, st.proId, d)) continue;
+    out.push({rot: k===0?"Hoje":k===1?"Amanhã":WD[d.getDay()]+" "+d.getDate()+"/"+pad(d.getMonth()+1),
+              acao:"dia", id:iso(d)});
+  }
+  if(!out.length) out.push({rot:"Falar com atendente", acao:"humano", fraca:true});
+  return out;
+}
+
+/* ============================ eventos ============================ */
+document.addEventListener("click", e=>{
+  const t = e.target.closest("[data-canal],[data-aba],[data-srv],[data-pro],[data-dia],[data-hora],[data-voltar],[data-ir],[data-cancelar],[data-remarcar],[data-repetir],[data-zap]");
+  if(!t) return;
+
+  if(t.dataset.canal){
+    canal = t.dataset.canal;
+    document.querySelectorAll("[data-canal]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.canal===canal)));
+    if(canal==="zap") iniciaZap(); else pintaApp();
+    return;
+  }
+  if(t.dataset.zap !== undefined){ zapEscolhe(parseInt(t.dataset.zap,10)); return; }
+
+  if(t.dataset.aba){
+    confirmado = null;
+    aba = t.dataset.aba;
+    if(aba==="agendar" && !passo) passo = {n:1, servicoId:null, proId:null, data:null, ini:null};
+    pintaApp(); return;
+  }
+  if(t.dataset.ir){
+    confirmado = null; aba = t.dataset.ir;
+    if(aba==="agendar") passo = {n:1, servicoId:null, proId:null, data:null, ini:null};
+    pintaApp(); return;
+  }
+  if(t.dataset.srv){
+    passo = {n:2, servicoId:t.dataset.srv, proId:null, data:null, ini:null};
+    const s = srv(t.dataset.srv);
+    if(s.pros.length===1){ passo.proId = s.pros[0]; passo.n = 3; }
+    aba = "agendar"; confirmado = null; pintaApp(); return;
+  }
+  if(t.dataset.pro){
+    passo.proId = t.dataset.pro==="qualquer" ? null : t.dataset.pro;
+    passo.n = 3; passo.data = null; passo.ini = null; pintaApp(); return;
+  }
+  if(t.dataset.dia){ passo.data = t.dataset.dia; passo.ini = null; passo.n = 4; pintaApp(); return; }
+  if(t.dataset.hora){ passo.ini = parseInt(t.dataset.hora,10); passo.n = 5; pintaApp(); return; }
+  if(t.dataset.voltar){
+    if(passo.n<=1){ aba = "inicio"; passo = null; }
+    else { passo.n -= 1; if(passo.n===2 && srv(passo.servicoId).pros.length===1) passo.n = 1; }
+    pintaApp(); return;
+  }
+  if(t.dataset.cancelar){
+    const m = MEUS.find(x=>x.id===t.dataset.cancelar);
+    if(m) m.status = "cancelado";
+    pintaApp(); return;
+  }
+  if(t.dataset.remarcar){
+    const m = MEUS.find(x=>x.id===t.dataset.remarcar);
+    if(m){ m.status = "cancelado";
+      passo = {n:3, servicoId:m.servicoId, proId:m.proId, data:null, ini:null};
+      aba = "agendar"; confirmado = null; }
+    pintaApp(); return;
+  }
+  if(t.dataset.repetir){
+    const s = srv(t.dataset.repetir);
+    passo = {n: s.pros.length===1?3:2, servicoId:s.id, proId: s.pros.length===1?s.pros[0]:null, data:null, ini:null};
+    aba = "agendar"; confirmado = null; pintaApp(); return;
+  }
+});
+
+const raiz = document.documentElement, btnTema = document.getElementById("tema");
+function temaAtual(){ return raiz.dataset.theme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark":"light"); }
+btnTema.addEventListener("click", ()=>{
+  raiz.dataset.theme = temaAtual()==="dark" ? "light" : "dark";
+  btnTema.textContent = temaAtual()==="dark" ? "Claro" : "Escuro";
+});
+btnTema.textContent = temaAtual()==="dark" ? "Claro" : "Escuro";
+
+pintaApp();
+})();
