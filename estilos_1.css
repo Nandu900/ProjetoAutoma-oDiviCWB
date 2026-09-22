@@ -42,10 +42,10 @@
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0B1211; --surface:#141C1A; --surface-2:#1E2825;
+  --bg:#0B1211; --surface:#af428c; --surface-2:#1E2825;
   --ink:#E8EEEC; --ink-2:#BCC8C5; --muted:#879894;
   --line:#25312E; --line-strong:#374743;
-  --brand:#3FAD99; --brand-ink:#8FD8CA; --brand-soft:#123029; --on-brand:#07201C;
+  --brand:#b74890; --brand-ink:#8FD8CA; --brand-soft:#123029; --on-brand:#07201C;
   --brass:#D6A33F; --brass-soft:#2D2413;
   --ok:#52B37E; --ok-soft:#12291E; --crit:#D9635B; --crit-soft:#2F1A18;
   --p1:#3FAD99; --p1-soft:#123029;

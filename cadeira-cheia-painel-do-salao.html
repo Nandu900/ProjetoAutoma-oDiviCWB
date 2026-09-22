@@ -13,6 +13,7 @@ img{max-width:100%}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 :root{
@@ -422,7 +423,7 @@ const PROS = [
 ];
 const proById = id => PROS.find(p=>p.id===id);
 
-const SERVICOS = [
+let SERVICOS = [
   {id:"s1", nome:"Corte feminino",  dur:60,  preco:80,  pro:["p1"]},
   {id:"s2", nome:"Escova",          dur:45,  preco:60,  pro:["p1"]},
   {id:"s3", nome:"Hidratação",      dur:60,  preco:110, pro:["p1"]},
@@ -641,6 +642,80 @@ const STATUS = {
 let STATS = {};
 function recalcStats(){ reindex(); STATS = {}; CLIENTES.forEach(c=>STATS[c.id]=statsCliente(c)); }
 recalcStats();
+
+/* ============================= persistencia ============================= */
+const SUPABASE_URL = "https://yydwzrhggvkggfqfapzg.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_XfVYIToStoCT1va6PcXRwg_hF7SxbAs";
+const DB_CONFIGURADO = SUPABASE_URL.startsWith("https://") &&
+  !SUPABASE_URL.includes("COLE_AQUI") && !SUPABASE_ANON_KEY.includes("COLE_AQUI");
+const db = DB_CONFIGURADO && window.supabase
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+function clienteParaBanco(c){
+  return {id:c.id, nome:c.nome, telefone:c.tel, perfil:c.perfil,
+    frequencia:c.freq || 30, novo:!!c.novo, observacao:c.obs || ""};
+}
+function agendamentoParaBanco(a){
+  return {id:a.id, cliente_id:a.clienteId, servico_id:a.servicoId,
+    profissional_id:a.proId, data:a.data, inicio:a.inicio, duracao:a.dur,
+    preco:a.preco, status:a.status, bloqueio:!!a.bloco, motivo:a.motivo || null};
+}
+function clienteDoBanco(c){
+  return {id:c.id, nome:c.nome, tel:c.telefone || "", perfil:c.perfil || perfis[0],
+    freq:c.frequencia || 30, novo:!!c.novo, obs:c.observacao || ""};
+}
+function agendamentoDoBanco(a){
+  return {id:a.id, clienteId:a.cliente_id, servicoId:a.servico_id,
+    proId:a.profissional_id, data:a.data, inicio:a.inicio, dur:a.duracao,
+    preco:Number(a.preco || 0), status:a.status, bloco:!!a.bloqueio,
+    motivo:a.motivo || ""};
+}
+function servicoDoBanco(s){
+  const profissionais = s.profissionais || s.pros || s.profissional_ids || s.profissional ||
+    (s.profissional_id ? [s.profissional_id] : PROS.map(p=>p.id));
+  return {id:String(s.id), nome:s.nome || s.servico || "Serviço", dur:Number(s.duracao || s.dur || 30),
+    preco:Number(s.preco || s.valor || 0), pro:Array.isArray(profissionais) ? profissionais : [profissionais]};
+}
+function atualizarSequencia(){
+  const ids = [...CLIENTES, ...AGENDAMENTOS].map(x=>String(x.id));
+  const maior = ids.reduce((n,id)=>{
+    const match = id.match(/(?:c|a|b)(\d+)/);
+    return match ? Math.max(n, Number(match[1])) : n;
+  }, 0);
+  seqId = Math.max(seqId, maior + 1);
+}
+async function carregarBanco(){
+  if(!db) return false;
+  const [clientes, agendamentos, servicos] = await Promise.all([
+    db.from("clientes").select("*").order("nome"),
+    db.from("agendamentos").select("*").order("data").order("inicio"),
+    db.from("Serviços").select("*").order("nome")
+  ]);
+  if(clientes.error) throw clientes.error;
+  if(agendamentos.error) throw agendamentos.error;
+  if(servicos.error) throw servicos.error;
+  if(servicos.data.length) SERVICOS = servicos.data.map(servicoDoBanco);
+  CLIENTES.splice(0, CLIENTES.length, ...clientes.data.map(clienteDoBanco));
+  AGENDAMENTOS.splice(0, AGENDAMENTOS.length, ...agendamentos.data.map(agendamentoDoBanco));
+  atualizarSequencia();
+  recalcStats();
+  return true;
+}
+async function inserirClienteBanco(c){
+  if(!db) return;
+  const {error} = await db.from("clientes").insert(clienteParaBanco(c));
+  if(error) throw error;
+}
+async function inserirAgendamentoBanco(a){
+  if(!db) return;
+  const {error} = await db.from("agendamentos").insert(agendamentoParaBanco(a));
+  if(error) throw error;
+}
+async function atualizarStatusBanco(a){
+  if(!db) return;
+  const {error} = await db.from("agendamentos").update({status:a.status}).eq("id",a.id);
+  if(error) throw error;
+}
 
 /* ============================= métricas ============================= */
 function periodo(ini,fim){ // inclusivo, Date
@@ -1310,7 +1385,7 @@ function abrirNovo(prefill){
   if(pf.clienteId && cliById(pf.clienteId)){ escolha={tipo:"cli", id:pf.clienteId}; mostraSelecionado(); }
   else setTimeout(()=>inpCli.focus(), 30);
 
-  document.getElementById("form-novo").addEventListener("submit", ev=>{
+  document.getElementById("form-novo").addEventListener("submit", async ev=>{
     ev.preventDefault();
     const aviso = document.getElementById("f-aviso");
     const proId = selPro.value, srv = srvById(selSrv.value);
@@ -1339,15 +1414,27 @@ function abrirNovo(prefill){
       inpCli.focus(); return;
     }
     let cliId = escolha.id;
+    let clienteNovo = null;
     if(escolha.tipo==="novo"){
       const nome=(document.getElementById("f-nome").value||"").trim();
       if(!nome){ aviso.hidden=false; aviso.textContent="Informe o nome do cliente."; return; }
-      const novo = {id:"c"+(CLIENTES.length+1)+"-"+(seqId++), nome,
+      clienteNovo = {id:"c"+(CLIENTES.length+1)+"-"+(seqId++), nome,
         tel:(document.getElementById("f-tel").value||telefone()), perfil:perfis[0], freq:30, novo:true, obs:""};
-      CLIENTES.push(novo); cliId = novo.id;
+      CLIENTES.push(clienteNovo); cliId = clienteNovo.id;
     }
-    AGENDAMENTOS.push({id:"a"+(seqId++), clienteId:cliId, servicoId:srv.id, proId, data,
-      inicio, dur:srv.dur, preco:srv.preco, status:"agendado", bloco:false});
+    const agendamento = {id:"a"+(seqId++), clienteId:cliId, servicoId:srv.id, proId, data,
+      inicio, dur:srv.dur, preco:srv.preco, status:"agendado", bloco:false};
+    AGENDAMENTOS.push(agendamento);
+    try{
+      if(clienteNovo) await inserirClienteBanco(clienteNovo);
+      await inserirAgendamentoBanco(agendamento);
+    }catch(err){
+      AGENDAMENTOS.splice(AGENDAMENTOS.indexOf(agendamento), 1);
+      if(clienteNovo) CLIENTES.splice(CLIENTES.indexOf(clienteNovo), 1);
+      recalcStats();
+      aviso.hidden=false; aviso.textContent="Não foi possível salvar no banco. Confira a configuração do Supabase.";
+      return;
+    }
     recalcStats();
     agendaDia = new Date(data+"T12:00:00"); agendaDia.setHours(0,0,0,0);
     fecharOverlay(); render(); toast("Horário marcado para "+hm(inicio));
@@ -1617,18 +1704,22 @@ document.addEventListener("click", e=>{
     render();                 // agenda e painel atrás
     abrirAgendamento(id);     // e o próprio modal, já com a opção certa marcada
     toast("Status: "+STATUS[st].rot);
+    atualizarStatusBanco(a).catch(()=>toast("Alteração local feita, mas não foi salva no banco"));
     return;
   }
   if(t.dataset.del){
     const i=AGENDAMENTOS.findIndex(x=>x.id===t.dataset.del);
     if(i>=0) AGENDAMENTOS.splice(i,1);
     fecharOverlay(); render(); toast("Bloqueio removido");
+    if(db) db.from("agendamentos").delete().eq("id",t.dataset.del)
+      .then(({error})=>{ if(error) toast("Bloqueio removido localmente, mas não foi salvo no banco"); });
     return;
   }
   if(t.dataset.confirm){
     const a=AGENDAMENTOS.find(x=>x.id===t.dataset.confirm);
     if(a) a.status="confirmado";
     confirmadosHoje.add(t.dataset.confirm); render(); toast("Cliente confirmado");
+    if(a) atualizarStatusBanco(a).catch(()=>toast("Confirmação local feita, mas não foi salva no banco"));
     return;
   }
   if(t.dataset.copy){
@@ -1686,6 +1777,20 @@ document.getElementById("theme-toggle").addEventListener("click", ()=>{
 });
 pintaLabel();
 render();
+
+(async ()=>{
+  if(!DB_CONFIGURADO){
+    toast("Modo demonstração: configure o Supabase para salvar dados");
+    return;
+  }
+  try{
+    await carregarBanco();
+    render();
+  }catch(err){
+    console.error("Supabase:", err);
+    toast("Banco indisponível: exibindo dados de demonstração");
+  }
+})();
 
 // a exportação depende de o visualizador permitir salvar arquivos; sem isso, o botão não aparece
 (async ()=>{
