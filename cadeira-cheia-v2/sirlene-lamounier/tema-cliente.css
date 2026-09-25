@@ -1,0 +1,57 @@
+/* Tema visual · Sirlene Lamounier Studio · cliente (nude, off-white e preto) */
+:root{
+  --capa-anel:rgba(154,117,73,.45);
+  --bg:#F3EEE9;
+  --surface:#FFFFFF;
+  --surface-2:#EDE5DE;
+  --ink:#171310;
+  --ink-2:#463D37;
+  --muted:#8A7C72;
+  --line:#E2D7CE;
+  --line-strong:#CDBEB1;
+  --brand:#1C1613;
+  --brand-ink:#3A2E27;
+  --brand-soft:#E8DCD2;
+  --on-brand:#F7F2ED;
+  --brass:#9A7549;
+  --brass-soft:#F2E6D6;
+  --ok:#4C7659;    --ok-soft:#DEEAE0;
+  --crit:#A3524B;  --crit-soft:#F5DFDC;
+  --p1:#6B4C39; --p1-soft:#EDE1D8;
+  --p2:#56666E; --p2-soft:#DFE7EA;
+  --p3:#835F76; --p3-soft:#F0E3EC;
+  --zap-bg:#E3DAD1; --zap-head:#1C1613; --zap-me:#E8DCD2; --zap-bot:#FFFFFF;
+  --shadow:0 1px 2px rgba(23,19,16,.05), 0 16px 36px -22px rgba(23,19,16,.45);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#100E0D; --surface:#191615; --surface-2:#241F1C;
+    --ink:#F1EAE4; --ink-2:#C6BAB1; --muted:#907F74;
+    --line:#2B2523; --line-strong:#403833;
+    --brand:#E9DCD1; --brand-ink:#E9DCD1; --brand-soft:#2A221E; --on-brand:#171310;
+    --brass:#C79E68; --brass-soft:#2E2417;
+    --ok:#6FA681; --ok-soft:#17261B; --crit:#D0837B; --crit-soft:#2E1B19;
+    --p1:#C69C7E; --p1-soft:#2A211B;
+    --p2:#93AEB8; --p2-soft:#1A2326;
+    --p3:#C298B3; --p3-soft:#261B22;
+    --zap-bg:#141110; --zap-head:#241F1C; --zap-me:#2F2620; --zap-bot:#191615;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 16px 36px -22px rgba(0,0,0,.95);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#100E0D; --surface:#191615; --surface-2:#241F1C;
+  --ink:#F1EAE4; --ink-2:#C6BAB1; --muted:#907F74;
+  --line:#2B2523; --line-strong:#403833;
+  --brand:#E9DCD1; --brand-ink:#E9DCD1; --brand-soft:#2A221E; --on-brand:#171310;
+  --brass:#C79E68; --brass-soft:#2E2417;
+  --ok:#6FA681; --ok-soft:#17261B; --crit:#D0837B; --crit-soft:#2E1B19;
+  --p1:#C69C7E; --p1-soft:#2A211B;
+  --p2:#93AEB8; --p2-soft:#1A2326;
+  --p3:#C298B3; --p3-soft:#261B22;
+  --zap-bg:#141110; --zap-head:#241F1C; --zap-me:#2F2620; --zap-bot:#191615;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 16px 36px -22px rgba(0,0,0,.95);
+}
+

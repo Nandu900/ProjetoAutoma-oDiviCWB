@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sirlene Lamounier Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="tema-cliente.css">
+<link rel="stylesheet" href="../codigo-base/cliente.css">
+</head>
+<body>
+
+<div class="palco">
+  <header class="barra">
+    <div>
+      <div class="tit">Visão da cliente</div>
+      <div class="sub">Protótipo V2 · Sirlene Lamounier Studio</div>
+    </div>
+    <div class="seg" role="group" aria-label="Canal">
+      <button data-canal="app" aria-pressed="true">Página</button>
+      <button data-canal="zap" aria-pressed="false">WhatsApp</button>
+    </div>
+    <button class="tema" id="tema">Escuro</button>
+  </header>
+
+  <div class="fone" id="fone"></div>
+  <p class="legenda" id="legenda"></p>
+</div>
+
+<script src="config-salao.js"></script>
+<script src="../codigo-base/cliente.js"></script>
+</body>
+</html>

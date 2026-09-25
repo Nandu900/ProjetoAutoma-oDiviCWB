@@ -1,0 +1,79 @@
+/* Tema visual · Barbearia Mascarenhas · painel (preto, dourado e off-white) */
+:root{
+  --bg:#F6F3ED;
+  --surface:#FFFFFF;
+  --surface-2:#EFE9DF;
+  --ink:#12110F;
+  --ink-2:#403C35;
+  --muted:#7B7467;
+  --line:#E4DED2;
+  --line-strong:#C7BFAF;
+  --accent:#1A1815;
+  --accent-soft:#EDE4CE;
+  --accent-ink:#2B2720;
+  --on-accent:#FBF8F1;
+  --brass:#8E6D1C;
+  --ok:#3F7050;      --ok-soft:#DFEBE2;
+  --warn:#8E5F14;    --warn-soft:#F4E8CE;
+  --crit:#9F463F;    --crit-soft:#F6E0DC;
+  --p1:#8A6A22;      --p1-soft:#F3E9D4;
+  --p2:#4E5F6B;      --p2-soft:#DEE6EA;
+  --p3:#6C5A45;      --p3-soft:#EBE3D8;
+  --p4:#5E6238;      --p4-soft:#E9EAD8;
+  --p5:#4A5480;      --p5-soft:#E2E5F2;
+  --shadow:0 1px 2px rgba(18,17,15,.05), 0 10px 28px -16px rgba(18,17,15,.34);
+  --radius:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0D0C0B;
+    --surface:#171614;
+    --surface-2:#221F1B;
+    --ink:#F3EFE6;
+    --ink-2:#C9C0B1;
+    --muted:#8C8377;
+    --line:#282420;
+    --line-strong:#3C3730;
+    --accent:#E9D9B1;
+    --accent-soft:#2A2419;
+    --accent-ink:#EFE2C0;
+    --on-accent:#12110F;
+    --brass:#D8B160;
+    --ok:#6DA47E;    --ok-soft:#16241A;
+    --warn:#D2A65C;  --warn-soft:#2E2617;
+    --crit:#CE7F77;  --crit-soft:#2C1A18;
+    --p1:#D8B160;    --p1-soft:#2A2318;
+    --p2:#8FA9B4;    --p2-soft:#192225;
+    --p3:#C0A583;    --p3-soft:#241D16;
+    --p4:#AFB27A;    --p4-soft:#22231A;
+    --p5:#98A3D6;    --p5-soft:#1B1F31;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -18px rgba(0,0,0,.95);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0D0C0B;
+  --surface:#171614;
+  --surface-2:#221F1B;
+  --ink:#F3EFE6;
+  --ink-2:#C9C0B1;
+  --muted:#8C8377;
+  --line:#282420;
+  --line-strong:#3C3730;
+  --accent:#E9D9B1;
+  --accent-soft:#2A2419;
+  --accent-ink:#EFE2C0;
+  --on-accent:#12110F;
+  --brass:#D8B160;
+  --ok:#6DA47E;    --ok-soft:#16241A;
+  --warn:#D2A65C;  --warn-soft:#2E2617;
+  --crit:#CE7F77;  --crit-soft:#2C1A18;
+  --p1:#D8B160;    --p1-soft:#2A2318;
+  --p2:#8FA9B4;    --p2-soft:#192225;
+  --p3:#C0A583;    --p3-soft:#241D16;
+  --p4:#AFB27A;    --p4-soft:#22231A;
+  --p5:#98A3D6;    --p5-soft:#1B1F31;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -18px rgba(0,0,0,.95);
+}
+

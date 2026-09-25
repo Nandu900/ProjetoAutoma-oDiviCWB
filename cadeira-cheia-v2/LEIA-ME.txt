@@ -1,0 +1,81 @@
+CADEIRA CHEIA · V2 · CÓDIGO ÚNICO
+Salão (Sirlene Lamounier Studio) e barbearia (Barbearia Mascarenhas) no mesmo código
+Atualizado em 25/09/2026
+
+==========================================================================
+O QUE MUDOU
+==========================================================================
+Até a V1 cada estabelecimento tinha a sua cópia do painel.js e do cliente.js
+(2.265 linhas no salão, 2.518 na barbearia) e cada melhoria precisava ser
+refeita nas duas. Na V2 existe UM código só, na pasta codigo-base/.
+O que muda de um cliente para o outro fica em três arquivos da pasta dele:
+
+  config-salao.js   serviços, preços, pausas, ciclos, equipe, horários,
+                    textos com gênero ("a cliente" / "o cliente"),
+                    fidelidade, régua de situação e dados de demonstração
+  tema-painel.css   cores do painel
+  tema-cliente.css  cores da página do cliente
+
+==========================================================================
+ESTRUTURA DA PASTA
+==========================================================================
+codigo-base/                 IGUAL para todos os clientes. Não editar por cliente.
+  painel.js   painel.css     painel do estabelecimento
+  cliente.js  cliente.css    página do cliente + bot do WhatsApp
+
+sirlene-lamounier/           salão feminino · 3 profissionais · 14 serviços
+barbearia-mascarenhas/       barbearia · 1 barbeiro · 6 serviços
+  config-salao.js
+  tema-painel.css   tema-cliente.css
+  painel.html.txt   cliente.html.txt   (estrutura das páginas)
+
+==========================================================================
+COMO ABRIR
+==========================================================================
+1. Mantenha a estrutura de pastas como está (as páginas buscam o código em ../codigo-base/).
+2. Dentro da pasta do cliente, renomeie painel.html.txt -> painel.html e
+   cliente.html.txt -> cliente.html.
+3. Abra no navegador. Não precisa instalar nada.
+
+==========================================================================
+NOVIDADES QUE O SALÃO GANHOU (vieram da barbearia)
+==========================================================================
+- Régua de situação V1.1: tag "Não voltou" para quem veio uma vez e passou do
+  ciclo; ritmo que mistura a frequência real com o ciclo do serviço; tag
+  provisória (tracejada) com menos de 4 visitas.
+- Ciclo de retorno nos 14 serviços (valores iniciais, validar com a Sirlene):
+  escova 10 · mão 10 · pé e mão 12 · pé 15 · sobrancelha 20 · hidratações 21 ·
+  gloss 30 · retoque 35 · corte 45 · botox 60 · mechas, mechas completas e
+  progressiva 90 dias.
+- Configurações > Situação (cortes editáveis) e ciclo real sugerido em Serviços.
+- Follow-up com 4 vagas reservadas para quem veio uma vez só.
+- KPI "2º retorno" e ordem dos indicadores editável em Resultados.
+
+O QUE A BARBEARIA GANHOU
+- Todos os textos passam pela camada de rótulos (inclusive "contatado",
+  "confirmado", "nenhum cliente"), prontos para qualquer gênero.
+- Demonstração mais realista do "2º retorno" (parte dos clientes novos volta
+  dentro do mês).
+
+CONTINUA IGUAL EM CADA UM
+- Salão: preço "a partir de" com estimativa, unhas em paralelo ao cabelo,
+  escolha de profissional, combos que somam serviços avulsos.
+- Barbearia: preço fixo, combinados com preço fechado e economia, um barbeiro.
+
+==========================================================================
+COMO CRIAR UM NOVO CLIENTE
+==========================================================================
+1. Copie a pasta do cliente mais parecido (salão ou barbearia).
+2. Edite o config-salao.js: estabelecimento, rotulos, equipe, servicos,
+   gruposServico, combos, fidelidade, exemplo.
+3. Troque as cores em tema-painel.css e tema-cliente.css (só variáveis --).
+4. Nos dois .html.txt, troque o <title> e os textos do topo.
+Nada em codigo-base/ precisa mudar.
+
+==========================================================================
+LIMITES DO PROTÓTIPO
+==========================================================================
+- Dados de exemplo gerados na hora; nada fica salvo ao recarregar.
+- Mudanças no painel não chegam à página do cliente (ainda sem servidor).
+- Mensagens de WhatsApp não são enviadas: o sistema monta o texto e o dono copia.
+- Durações, pausas, faixas e ciclos são estimativas: validar com cada estabelecimento.

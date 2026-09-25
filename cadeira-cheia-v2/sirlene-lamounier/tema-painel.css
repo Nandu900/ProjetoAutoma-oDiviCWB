@@ -1,0 +1,79 @@
+/* Tema visual · Sirlene Lamounier Studio · painel (nude, off-white e preto) */
+:root{
+  --bg:#F4EFEA;
+  --surface:#FFFFFF;
+  --surface-2:#EEE6DF;
+  --ink:#171310;
+  --ink-2:#463D37;
+  --muted:#877970;
+  --line:#E3D8CF;
+  --line-strong:#CDBEB1;
+  --accent:#2A211C;
+  --accent-soft:#EDE3DA;
+  --accent-ink:#2A211C;
+  --on-accent:#F7F2ED;
+  --brass:#9A7549;
+  --ok:#4C7659;      --ok-soft:#DEEAE0;
+  --warn:#A2691E;    --warn-soft:#F4E7D3;
+  --crit:#A3524B;    --crit-soft:#F5DFDC;
+  --p1:#7A5540;      --p1-soft:#F0E4DB;
+  --p2:#56666E;      --p2-soft:#DFE7EA;
+  --p3:#835F76;      --p3-soft:#F0E3EC;
+  --p4:#66683A;      --p4-soft:#ECECDC;
+  --p5:#4E5A88;      --p5-soft:#E3E6F3;
+  --shadow:0 1px 2px rgba(23,19,16,.05), 0 10px 28px -16px rgba(23,19,16,.32);
+  --radius:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#100E0D;
+    --surface:#191615;
+    --surface-2:#241F1C;
+    --ink:#F1EAE4;
+    --ink-2:#C6BAB1;
+    --muted:#907F74;
+    --line:#2B2523;
+    --line-strong:#403833;
+    --accent:#E4D3C4;
+    --accent-soft:#2C241F;
+    --accent-ink:#EBDDD0;
+    --on-accent:#171310;
+    --brass:#C79E68;
+    --ok:#6FA681;    --ok-soft:#17261B;
+    --warn:#D1A05A;  --warn-soft:#2E2417;
+    --crit:#D0837B;  --crit-soft:#2E1B19;
+    --p1:#C69C7E;    --p1-soft:#2A211B;
+    --p2:#93AEB8;    --p2-soft:#1A2326;
+    --p3:#C298B3;    --p3-soft:#261B22;
+    --p4:#B5B77A;    --p4-soft:#23241A;
+    --p5:#98A3D6;    --p5-soft:#1B1F31;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -18px rgba(0,0,0,.95);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#100E0D;
+  --surface:#191615;
+  --surface-2:#241F1C;
+  --ink:#F1EAE4;
+  --ink-2:#C6BAB1;
+  --muted:#907F74;
+  --line:#2B2523;
+  --line-strong:#403833;
+  --accent:#E4D3C4;
+  --accent-soft:#2C241F;
+  --accent-ink:#EBDDD0;
+  --on-accent:#171310;
+  --brass:#C79E68;
+  --ok:#6FA681;  --ok-soft:#17261B;
+  --warn:#D1A05A;  --warn-soft:#2E2417;
+  --crit:#D0837B;  --crit-soft:#2E1B19;
+  --p1:#C69C7E;  --p1-soft:#2A211B;
+  --p2:#93AEB8;  --p2-soft:#1A2326;
+  --p3:#C298B3;  --p3-soft:#261B22;
+  --p4:#B5B77A;  --p4-soft:#23241A;
+  --p5:#98A3D6;  --p5-soft:#1B1F31;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 30px -18px rgba(0,0,0,.95);
+}
+

@@ -1,0 +1,57 @@
+/* Tema visual · Barbearia Mascarenhas · cliente (preto, dourado e off-white) */
+:root{
+  --capa-anel:rgba(201,163,84,.5);
+  --bg:#F6F3ED;
+  --surface:#FFFFFF;
+  --surface-2:#EDE8DE;
+  --ink:#12110F;
+  --ink-2:#403C35;
+  --muted:#7C7568;
+  --line:#E3DDD1;
+  --line-strong:#C7BFAF;
+  --brand:#131210;
+  --brand-ink:#2E2A23;
+  --brand-soft:#EBE3D2;
+  --on-brand:#FBF8F1;
+  --brass:#8E6D1C;
+  --brass-soft:#F5EACF;
+  --ok:#3F7050;    --ok-soft:#DFEBE2;
+  --crit:#9F463F;  --crit-soft:#F6E0DC;
+  --p1:#8A6A22; --p1-soft:#F2E8D3;
+  --p2:#4E5F6B; --p2-soft:#DEE6EA;
+  --p3:#6C5A45; --p3-soft:#EBE3D8;
+  --zap-bg:#E6E0D2; --zap-head:#131210; --zap-me:#EDE2C6; --zap-bot:#FFFFFF;
+  --shadow:0 1px 2px rgba(18,17,15,.06), 0 16px 36px -22px rgba(18,17,15,.5);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0D0C0B; --surface:#171614; --surface-2:#221F1B;
+    --ink:#F3EFE6; --ink-2:#C9C0B1; --muted:#8C8377;
+    --line:#282420; --line-strong:#3C3730;
+    --brand:#E9D9B1; --brand-ink:#E9D9B1; --brand-soft:#2A2419; --on-brand:#12110F;
+    --brass:#D8B160; --brass-soft:#2E2617;
+    --ok:#6DA47E; --ok-soft:#16241A; --crit:#CE7F77; --crit-soft:#2C1A18;
+    --p1:#D8B160; --p1-soft:#2A2318;
+    --p2:#8FA9B4; --p2-soft:#192225;
+    --p3:#C0A583; --p3-soft:#241D16;
+    --zap-bg:#121110; --zap-head:#221F1B; --zap-me:#2F2718; --zap-bot:#171614;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 16px 36px -22px rgba(0,0,0,.95);
+  }
+}
+:root[data-theme="dark"]{
+color-scheme:dark;
+  --bg:#0D0C0B; --surface:#171614; --surface-2:#221F1B;
+  --ink:#F3EFE6; --ink-2:#C9C0B1; --muted:#8C8377;
+  --line:#282420; --line-strong:#3C3730;
+  --brand:#E9D9B1; --brand-ink:#E9D9B1; --brand-soft:#2A2419; --on-brand:#12110F;
+  --brass:#D8B160; --brass-soft:#2E2617;
+  --ok:#6DA47E; --ok-soft:#16241A; --crit:#CE7F77; --crit-soft:#2C1A18;
+  --p1:#D8B160; --p1-soft:#2A2318;
+  --p2:#8FA9B4; --p2-soft:#192225;
+  --p3:#C0A583; --p3-soft:#241D16;
+  --zap-bg:#121110; --zap-head:#221F1B; --zap-me:#2F2718; --zap-bot:#171614;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 16px 36px -22px rgba(0,0,0,.95);
+}
+
